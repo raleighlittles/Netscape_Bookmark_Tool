@@ -823,7 +823,6 @@ vendor/
 # with configuration, then see the bottom of this file for an example.
 # Ignore all JENKINS_HOME except jobs directory, root xml config, and
 # .gitignore file.
-/*
 !/jobs
 !/.gitignore
 !/*.xml
