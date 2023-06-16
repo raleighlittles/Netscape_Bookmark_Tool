@@ -8,68 +8,24 @@ https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie
 import argparse
 import os
 import lxml.html
-import re
-import pdb
-import sys
-import base64
 import datetime
+
+# locals
+import icon_exporter
+import link_exporter
 
 def get_friendly_time_from_timestamp(timestamp : str) -> str:
     """
     """
     return datetime.datetime.fromtimestamp(int(timestamp)).strftime("%Y%m%d%H%M")
 
-def generate_icons_folder_name(bookmark_export_name : str) -> str:
-    """
-    
-    """
+def parse_bookmarks_export(bookmark_export_filename : str):
 
-    # Turn a path from "/path/to/some/raleighs-file.txt" into "raleighs-file"
-    bookmarks_file_basename = (os.path.splitext(bookmark_export_name)[0]).split("/")[-1]
+    all_bookmarks_links = list()
 
-    return (datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "__" +  bookmarks_file_basename)
-    
+    html_doc_root = lxml.html.parse(bookmark_export_filename).getroot()
 
-def get_extension_from_base64(icon_base64 : str) -> str:
-    mime_type_extension_regex = re.compile("data:image\/(.+);")
-
-    return re.match(mime_type_extension_regex, icon_base64).group(1)
-
-
-def extract_bookmark_icon(icons_folder_name : str, bookmark_name_or_url : str, icon_image_data : str):
-    """
-    Bookmark icons in Chrome, are stored like: data:image/png;base64,<BASE64-DATA>
-
-    so extract the base64 data into the given file 
-    """
-
-    # Filenames can't be anything that isn't alphanumeric
-    icon_filename = (re.sub(r"\W", "", bookmark_name_or_url)) + "." + get_extension_from_base64(icon_image_data)
-
-    icon_base64_data_only = "".join(icon_image_data.split(",")[1::])
-
-    if (len(icon_base64_data_only) < 10):
-        print("[ERROR] Image icon data corrupted?")
-        sys.exit(1)
-
-    with open(os.path.join(icons_folder_name, icon_filename), 'wb') as icon_file_hndl:
-
-        icon_file_hndl.write(base64.b64decode(icon_base64_data_only))
-        print(f"[DEBUG] Created {icon_filename}")
-    
-
-if __name__ == "__main__":
-    argparse_parser = argparse.ArgumentParser()
-
-    argparse_parser.add_argument("-f", "--input-bookmark-file", type=str, help="The full path to the Netscape format bookmark file", required=True)
-
-    argparse_parser.add_argument("-s", "--sort-order", type=str, help="The order in which to sort the bookmarks, when re-exported. 'add' for Date-Added, 'mod' for Date-Modified, 'abc' for lexicographic order.")
-
-    argparse_args = argparse_parser.parse_args()
-
-    html_doc_root = lxml.html.parse(argparse_args.input_bookmark_file).getroot()
-
-    icons_export_folder_name = generate_icons_folder_name(argparse_args.input_bookmark_file)
+    icons_export_folder_name = icon_exporter.generate_icons_folder_name(argparse_args.input_bookmark_file)
     os.makedirs(icons_export_folder_name)
 
     num_bookmarks_found = 0
@@ -78,6 +34,10 @@ if __name__ == "__main__":
     for bookmark_elem in html_doc_root.iter('a'):
 
         num_bookmarks_found += 1
+
+        bookmark_link = bookmark_elem.attrib['href']
+
+        all_bookmarks_links.append(bookmark_link)
 
         icon_image_data_key = "icon"
 
@@ -90,12 +50,24 @@ if __name__ == "__main__":
         bookmark_added_date = get_friendly_time_from_timestamp(bookmark_elem.attrib['add_date'])
 
         if bookmark_elem.text is not None:
-            extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.text), icon_image_data)
+            icon_exporter.extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.text), icon_image_data)
         
         else:
-            extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.attrib['href']), icon_image_data)
+            icon_exporter.extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_link), icon_image_data)
 
         num_icons_exported += 1
 
-    print("===FINISHED===")
+    link_exporter.write_bookmark_links_to_file(all_bookmarks_links, "bookmark-links.txt")
+
+    print("==========FINISHED==========")
     print(f"Exported {num_bookmarks_found} bookmarks, with {num_icons_exported} icons")
+
+if __name__ == "__main__":
+    argparse_parser = argparse.ArgumentParser()
+
+    argparse_parser.add_argument("-f", "--input-bookmark-file", type=str, help="The full path to the Netscape format bookmark file", required=True)
+
+    argparse_args = argparse_parser.parse_args()
+
+    parse_bookmarks_export(argparse_args.input_bookmark_file)
+
