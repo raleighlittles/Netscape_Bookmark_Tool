@@ -14,6 +14,11 @@ import sys
 import base64
 import datetime
 
+def get_friendly_time_from_timestamp(timestamp : str) -> str:
+    """
+    """
+    return datetime.datetime.fromtimestamp(int(timestamp)).strftime("%Y%m%d%H%M")
+
 def generate_icons_folder_name(bookmark_export_name : str) -> str:
     """
     
@@ -82,11 +87,13 @@ if __name__ == "__main__":
 
         icon_image_data = bookmark_elem.attrib[icon_image_data_key]
 
+        bookmark_added_date = get_friendly_time_from_timestamp(bookmark_elem.attrib['add_date'])
+
         if bookmark_elem.text is not None:
-            extract_bookmark_icon(icons_export_folder_name, bookmark_elem.text, icon_image_data)
+            extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.text), icon_image_data)
         
         else:
-            extract_bookmark_icon(icons_export_folder_name, bookmark_elem.attrib['href'], icon_image_data)
+            extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.attrib['href']), icon_image_data)
 
         num_icons_exported += 1
 
