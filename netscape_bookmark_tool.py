@@ -7,12 +7,16 @@ https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie
 """
 import argparse
 import os
+import pdb
 import lxml.html
+import csv
 import datetime
 
 # locals
 import icon_exporter
 import link_exporter
+
+
 
 def get_friendly_time_from_timestamp(timestamp : str) -> str:
     """
@@ -21,7 +25,9 @@ def get_friendly_time_from_timestamp(timestamp : str) -> str:
 
 def parse_bookmarks_export(bookmark_export_filename : str):
 
-    all_bookmarks_links = list()
+    #all_bookmarks_links = list()
+
+    all_bookmarks = list()
 
     html_doc_root = lxml.html.parse(bookmark_export_filename).getroot()
 
@@ -33,11 +39,23 @@ def parse_bookmarks_export(bookmark_export_filename : str):
 
     for bookmark_elem in html_doc_root.iter('a'):
 
+        bookmark_obj = dict.fromkeys(["bookmark_name", "bookmark_url", "bookmark_icon_filename", "bookmark_date_created_epoch", "bookmark_date_created_timestamp"])
+
         num_bookmarks_found += 1
 
-        bookmark_link = bookmark_elem.attrib['href']
+        # Initialize name
+        bookmark_obj["bookmark_name"] = bookmark_elem.text
 
-        all_bookmarks_links.append(bookmark_link)
+        # Initialize URL
+        bookmark_link = bookmark_elem.attrib['href']
+        bookmark_obj['bookmark_url'] = bookmark_link
+        #all_bookmarks_links.append(bookmark_link)
+
+        bookmark_added_epoch = bookmark_elem.attrib["add_date"]
+        bookmark_obj["bookmark_date_created_epoch"] = bookmark_added_epoch
+
+        bookmark_added_date = get_friendly_time_from_timestamp(bookmark_added_epoch)
+        bookmark_obj["bookmark_date_created_timestamp"] = bookmark_added_date
 
         icon_image_data_key = "icon"
 
@@ -47,17 +65,33 @@ def parse_bookmarks_export(bookmark_export_filename : str):
 
         icon_image_data = bookmark_elem.attrib[icon_image_data_key]
 
-        bookmark_added_date = get_friendly_time_from_timestamp(bookmark_elem.attrib['add_date'])
+        icon_image_filename = ""
 
         if bookmark_elem.text is not None:
-            icon_exporter.extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.text), icon_image_data)
+            icon_image_filename = icon_exporter.extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_elem.text), icon_image_data)
         
         else:
-            icon_exporter.extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_link), icon_image_data)
+            icon_image_filename = icon_exporter.extract_bookmark_icon(icons_export_folder_name, (bookmark_added_date + "__" + bookmark_link), icon_image_data)
 
+        bookmark_obj["bookmark_icon_filename"] = icon_image_filename
         num_icons_exported += 1
+        
+        all_bookmarks.append(bookmark_obj)
 
-    link_exporter.write_bookmark_links_to_file(all_bookmarks_links, "bookmark-links.txt")
+    #link_exporter.write_bookmark_links_to_file([bookmark["bookmark_url"] for bookmark], "bookmark-links.txt")
+    link_exporter.write_bookmark_links_to_file([bookmark["bookmark_url"] for bookmark in all_bookmarks], "bookmark_links.txt")
+
+    with open("all_bookmarks.csv", 'w') as csv_file:
+
+        csv_writer = csv.writer(csv_file)
+
+        # Header columns
+        csv_writer.writerow(all_bookmarks[0].keys())
+
+        for bookmark in sorted(all_bookmarks, key=lambda k: k["bookmark_date_created_epoch"]):
+            csv_writer.writerow(list(bookmark.values()))
+
+    
 
     print("==========FINISHED==========")
     print(f"Exported {num_bookmarks_found} bookmarks, with {num_icons_exported} icons")

@@ -22,7 +22,7 @@ def get_extension_from_base64(icon_base64 : str) -> str:
     return re.match(mime_type_extension_regex, icon_base64).group(1)
 
 
-def extract_bookmark_icon(icons_folder_name : str, bookmark_name_or_url : str, icon_image_data : str):
+def extract_bookmark_icon(icons_folder_name : str, bookmark_name_or_url : str, icon_image_data : str) -> str:
     """
     Bookmark icons in Chrome, are stored like: data:image/png;base64,<BASE64-DATA>
 
@@ -38,8 +38,12 @@ def extract_bookmark_icon(icons_folder_name : str, bookmark_name_or_url : str, i
         print("[ERROR] Image icon data corrupted?")
         sys.exit(1)
 
-    with open(os.path.join(icons_folder_name, icon_filename), 'wb') as icon_file_hndl:
+    icon_full_path = os.path.join(icons_folder_name, icon_filename)
+
+    with open(icon_full_path, 'wb') as icon_file_hndl:
 
         icon_file_hndl.write(base64.b64decode(icon_base64_data_only))
         #print(f"[DEBUG] Created {icon_filename}")
+
+    return icon_full_path
     
