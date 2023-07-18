@@ -18,10 +18,10 @@ import link_exporter
 
 
 
-def get_friendly_time_from_timestamp(timestamp : str) -> str:
+def get_timestamp_from_epoch(epoch : str) -> str:
     """
     """
-    return datetime.datetime.fromtimestamp(int(timestamp)).strftime("%Y%m%d%H%M")
+    return datetime.datetime.fromtimestamp(int(epoch)).strftime("%Y%m%d%H%M")
 
 def parse_bookmarks_export(bookmark_export_filename : str):
 
@@ -54,8 +54,8 @@ def parse_bookmarks_export(bookmark_export_filename : str):
         bookmark_added_epoch = bookmark_elem.attrib["add_date"]
         bookmark_obj["bookmark_date_created_epoch"] = bookmark_added_epoch
 
-        bookmark_added_date = get_friendly_time_from_timestamp(bookmark_added_epoch)
-        bookmark_obj["bookmark_date_created_timestamp"] = bookmark_added_date
+        bookmark_added_date = get_timestamp_from_epoch(bookmark_added_epoch)
+        bookmark_obj["bookmark_date_created_timestamp"] = datetime.datetime.fromtimestamp(int(bookmark_added_epoch)).strftime('%c')
 
         icon_image_data_key = "icon"
 
