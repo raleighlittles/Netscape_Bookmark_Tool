@@ -6,9 +6,6 @@ import os
 import sys
 
 def generate_icons_folder_name(bookmark_export_name : str) -> str:
-    """
-    
-    """
 
     # Turn a path from "/path/to/some/raleighs-file.txt" into "raleighs-file"
     bookmarks_file_basename = (os.path.splitext(bookmark_export_name)[0]).split("/")[-1]
@@ -17,6 +14,7 @@ def generate_icons_folder_name(bookmark_export_name : str) -> str:
     
 
 def get_extension_from_base64(icon_base64 : str) -> str:
+    
     mime_type_extension_regex = re.compile("data:image\/(.+);")
 
     return re.match(mime_type_extension_regex, icon_base64).group(1)
