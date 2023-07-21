@@ -11,6 +11,7 @@ import pdb
 import lxml.html
 import csv
 import datetime
+import requests
 
 # locals
 import icon_exporter
@@ -39,7 +40,7 @@ def parse_bookmarks_export(bookmark_export_filename : str):
 
     for bookmark_elem in html_doc_root.iter('a'):
 
-        bookmark_obj = dict.fromkeys(["bookmark_name", "bookmark_url", "bookmark_icon_filename", "bookmark_date_created_epoch", "bookmark_date_created_timestamp"])
+        bookmark_obj = dict.fromkeys(["bookmark_name", "bookmark_url", "bookmark_icon_filename", "bookmark_date_created_epoch", "bookmark_date_created_timestamp", "is_accessible"])
 
         num_bookmarks_found += 1
 
@@ -49,7 +50,17 @@ def parse_bookmarks_export(bookmark_export_filename : str):
         # Initialize URL
         bookmark_link = bookmark_elem.attrib['href']
         bookmark_obj['bookmark_url'] = bookmark_link
-        #all_bookmarks_links.append(bookmark_link)
+
+        # Check if the URL is accessible by trying to access it
+        is_url_accessible = True
+        try:
+            #print(f"[DEBUG] Checking validity of URL: {bookmark_link}")
+            is_url_accessible = requests.get(bookmark_link, timeout=5, verify=False).ok
+
+        except:
+            is_url_accessible = False
+
+        bookmark_obj["is_accessible"] = is_url_accessible
 
         bookmark_added_epoch = bookmark_elem.attrib["add_date"]
         bookmark_obj["bookmark_date_created_epoch"] = bookmark_added_epoch
@@ -78,7 +89,6 @@ def parse_bookmarks_export(bookmark_export_filename : str):
         
         all_bookmarks.append(bookmark_obj)
 
-    #link_exporter.write_bookmark_links_to_file([bookmark["bookmark_url"] for bookmark], "bookmark-links.txt")
     link_exporter.write_bookmark_links_to_file([bookmark["bookmark_url"] for bookmark in all_bookmarks], "bookmark_links.txt")
 
     with open("all_bookmarks.csv", 'w') as csv_file:
